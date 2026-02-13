@@ -7,7 +7,7 @@ class UserModel(UserAdmin):
     pass
 
 
-admin.site.register(CustomUser, UserModel)
+admin.site.register(CustomUser)
 
 admin.site.register(AdminHOD)
 admin.site.register(Staffs)
