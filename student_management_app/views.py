@@ -1,92 +1,102 @@
-from django.shortcuts import render, redirect, HttpResponseRedirect
-from django.contrib.auth import logout, login
-from .models import CustomUser, Staffs, Students, AdminHOD
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.contrib.auth.hashers import check_password,make_password
+from django.db import transaction
 
+from .models import CustomUser, Student
+
+
+# ==============================
+# Home & Contact
+# ==============================
 def home(request):
-    print("hi")
-    return render(request, 'home.html')
+    return render(request, "home.html")
+
 
 def contact(request):
-    return render(request, 'contact.html')
+    return render(request, "contact.html")
 
-def get_user_type_from_email(email_id):
-    try:
-        print("entered")
-        email_user_type = email_id.split('@')[0].split('.')[1]
-        return CustomUser.EMAIL_TO_USER_TYPE_MAP[email_user_type]
-    except:
-        return None
-def doLogin(request):
+
+# ==============================
+# Login
+# ==============================
+def login_view(request):
+
     if request.method == "POST":
-        email_id = request.POST.get('email')
-        password = request.POST.get('password')
+        email = request.POST.get("email")
+        password = request.POST.get("password")
 
-        if not (email_id and password):
-            messages.error(request, "Please provide all the details!!")
-            return render(request, 'login_page.html')
+        if not email or not password:
+            messages.error(request, "All fields are required.")
+            return redirect("login")
 
-        user = CustomUser.objects.filter(email=email_id).last()
+        user = authenticate(request, username=email, password=password)
 
-        if not user or not check_password(password, user.password):
-            messages.error(request, 'Invalid Login Credentials!!')
-            return render(request, 'login_page.html')
+        if user is None:
+            messages.error(request, "Invalid credentials.")
+            return redirect("login")
 
         login(request, user)
 
-        if user.user_type == CustomUser.STUDENT:
-            return redirect('student_home/')
-        elif user.user_type == CustomUser.STAFF:
-            return redirect('staff_home/')
-        elif user.user_type == CustomUser.HOD:
-            return redirect('admin_home/')
+        # Role-based redirect
+        if user.role == CustomUser.Roles.STUDENT:
+            return redirect("student_home")
 
-        return render(request, 'home.html')
-    return render(request,'login_page.html')
+        elif user.role == CustomUser.Roles.STAFF:
+            return redirect("staff_home")
+
+        elif user.role == CustomUser.Roles.HOD:
+            return redirect("admin_home")
+
+        return redirect("home")
+
+    return render(request, "login_page.html")
 
 
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.contrib.auth.hashers import make_password
+# ==============================
+# Registration (Student)
+# ==============================
+@transaction.atomic
+def registration(request):
 
-def doRegistration(request):
     if request.method == "POST":
-        print(request.POST)
-        first_name = request.POST.get('first_name')
-        print(first_name)
-        last_name = request.POST.get('last_name')
-        email_id = request.POST.get('email')
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirmPassword')
-        print("hello")
+
+        first_name = request.POST.get("first_name")
+        last_name = request.POST.get("last_name")
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirmPassword")
+
         if password != confirm_password:
             messages.error(request, "Passwords do not match.")
-            return redirect('doRegistration')
+            return redirect("registration")
 
-        if CustomUser.objects.filter(email=email_id).exists():
+        if CustomUser.objects.filter(email=email).exists():
             messages.error(request, "Email already exists.")
-            return redirect('doRegistration')
+            return redirect("registration")
 
-        username = email_id   # safer approach
-
-        user = CustomUser(
-            username=username,
-            email=email_id,
+        # Create User
+        user = CustomUser.objects.create_user(
+            username=email,
+            email=email,
+            password=password,
             first_name=first_name,
             last_name=last_name,
-            user_type=CustomUser.STUDENT,  # assuming constant defined
+            role=CustomUser.Roles.STUDENT
         )
-        user.password = make_password(password)
-        user.save()
-        print("done")
 
-        messages.success(request, "Registration successful. Please log in.")
-        return redirect('doLogin')
+        # Create Student Profile
+        Student.objects.create(user=user)
 
-    return render(request, 'registration.html')
+        messages.success(request, "Account created successfully.")
+        return redirect("login")
+
+    return render(request, "registration.html")
 
 
+# ==============================
+# Logout
+# ==============================
 def logout_user(request):
     logout(request)
-    return HttpResponseRedirect('/')
+    return redirect("home")
