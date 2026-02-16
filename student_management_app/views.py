@@ -1,102 +1,76 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.db import transaction
-
-from .models import CustomUser, Student
-
-
-# ==============================
-# Home & Contact
-# ==============================
-def home(request):
-    return render(request, "home.html")
+from django.contrib.auth.decorators import login_required
+from .models import CustomUser
 
 
-def contact(request):
-    return render(request, "contact.html")
+def login_page(request):
+    return render(request, "login_page.html")
 
 
-# ==============================
-# Login
-# ==============================
-def login_view(request):
+def doLogin(request):
+    if request.method != "POST":
+        return redirect("/")
 
-    if request.method == "POST":
-        email = request.POST.get("email")
-        password = request.POST.get("password")
+    email = request.POST.get("email")
+    password = request.POST.get("password")
 
-        if not email or not password:
-            messages.error(request, "All fields are required.")
-            return redirect("login")
+    try:
+        user_obj = CustomUser.objects.get(email=email)
+        user = authenticate(
+            request,
+            username=user_obj.username,
+            password=password
+        )
+    except CustomUser.DoesNotExist:
+        user = None
 
-        user = authenticate(request, username=email, password=password)
-
-        if user is None:
-            messages.error(request, "Invalid credentials.")
-            return redirect("login")
-
+    if user:
         login(request, user)
 
-        # Role-based redirect
-        if user.role == CustomUser.Roles.STUDENT:
-            return redirect("student_home")
+        if user.role == CustomUser.Roles.HOD:
+            return redirect("admin_home")
 
         elif user.role == CustomUser.Roles.STAFF:
             return redirect("staff_home")
 
-        elif user.role == CustomUser.Roles.HOD:
-            return redirect("admin_home")
+        elif user.role == CustomUser.Roles.STUDENT:
+            return redirect("student_home")
 
-        return redirect("home")
+        else:
+            logout(request)
+            messages.error(request, "Role not assigned")
+            return redirect("/")
 
-    return render(request, "login_page.html")
-
-
-# ==============================
-# Registration (Student)
-# ==============================
-@transaction.atomic
-def registration(request):
-
-    if request.method == "POST":
-
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-        confirm_password = request.POST.get("confirmPassword")
-
-        if password != confirm_password:
-            messages.error(request, "Passwords do not match.")
-            return redirect("registration")
-
-        if CustomUser.objects.filter(email=email).exists():
-            messages.error(request, "Email already exists.")
-            return redirect("registration")
-
-        # Create User
-        user = CustomUser.objects.create_user(
-            username=email,
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-            role=CustomUser.Roles.STUDENT
-        )
-
-        # Create Student Profile
-        Student.objects.create(user=user)
-
-        messages.success(request, "Account created successfully.")
-        return redirect("login")
-
-    return render(request, "registration.html")
+    messages.error(request, "Invalid email or password")
+    return redirect("/")
 
 
-# ==============================
-# Logout
-# ==============================
+
 def logout_user(request):
     logout(request)
-    return redirect("home")
+    return redirect("/")
+
+
+@login_required(login_url='/')
+def admin_home(request):
+    return render(request, "hod_template/home_content.html")
+
+
+@login_required(login_url='/')
+def staff_home(request):
+    return render(request, "staff_template/home_content.html")
+
+
+@login_required(login_url='/')
+def student_home(request):
+    return render(request, "student_template/home_content.html")
+
+
+@login_required(login_url='/')
+def staff_only_view(request):
+    if request.user.role != CustomUser.Roles.STAFF:
+        return redirect("/")
+    return render(request, "staff_template/example.html")
+

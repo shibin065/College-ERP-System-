@@ -69,16 +69,15 @@
     <form method="POST" action="{% url 'doLogin' %}">
         {% csrf_token %}
         
-        <input type="text" name="email" placeholder="Email" class="form-control" required>
+        <input type="text" name="username" placeholder="Username" class="form-control" required>
+
         
         <input type="password" name="password" placeholder="Password" class="form-control" required>
         
         <button type="submit" class="btn">Login</button>
     </form>
 
-    <div class="text-center" style="margin-top: 15px;">
-        <a href="{% url 'doRegistration' %}">Create Account</a>
-    </div>
+   
 </div>
 
 </body>
