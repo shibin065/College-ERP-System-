@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 import datetime
 
-from .models import (
+from ..models import (
     CustomUser, Courses, Subjects, Student,
     Attendance, AttendanceReport,
     LeaveReportStudent, FeedBackStudent, StudentResult

@@ -2,9 +2,9 @@ from django.contrib import admin
 from django.urls import path
 
 from student_management_app import views
-from student_management_app.HodViews import *
-from student_management_app.StaffViews import *
-from student_management_app.StudentViews import *
+from student_management_app.views.HodViews import *
+from student_management_app.views.StaffViews import *
+from student_management_app.views.StudentViews import *
 
 urlpatterns = [
     # Admin

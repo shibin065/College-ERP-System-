@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 import json
 
-from .models import (
+from ..models import (
     CustomUser, Staff, Courses, Subjects, Student,
     SessionYearModel, Attendance, AttendanceReport,
     LeaveReportStaff, FeedBackStaff, StudentResult

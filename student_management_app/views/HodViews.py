@@ -6,8 +6,8 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 import json
 
-from .forms import AddStudentForm, EditStudentForm
-from .models import (
+from ..forms import AddStudentForm, EditStudentForm
+from ..models import (
     CustomUser, Staff, Student, Courses, Subjects,
     SessionYearModel, Attendance, AttendanceReport,
     LeaveReportStudent, LeaveReportStaff,
